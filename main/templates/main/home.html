@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscription Rotation Optimizer</title>
+    <link rel="stylesheet" href="/main/templates/main/home.css">
+</head>
+
+<body>
+<div class="container">
+    <h3>🎬 Subscription Rotation Optimizer</h3>
+
+    <div class="input-group">
+        <input type="text" id="movieInput" placeholder="Enter movie name">
+        <button class="add-btn" onclick="addMovie()">Add</button>
+    </div>
+
+    <div class="movie-list" id="movieList"></div>
+
+    <button class="calc-btn" id="calcBtn" onclick="calculate()">Calculate</button>
+    <div class="hours-box">
+        <label for="hoursPerWeek">
+            ⏱ How many hours can you watch per week?
+        </label>
+        <input
+            type="number"
+            id="hoursPerWeek"
+            min="1"
+            max="168"
+            step="0.5"
+            value="10"
+        />
+    </div>
+
+
+    <!-- Loader -->
+    <div class="loader" id="loader"></div>
+
+    <!-- Result -->
+    <div id="plan"></div>
+</div>
+<script>
+    const CALCULATE_URL = "{% url 'calculate' %}";
+    const CSRF_TOKEN = "{{ csrf_token }}";
+</script>
+
+<script src="/main/templates/main/home.js"></script>
+</body>
+</html>
