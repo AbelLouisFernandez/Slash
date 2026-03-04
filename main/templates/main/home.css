@@ -206,3 +206,67 @@ button:disabled {
     border-radius: 6px;
     border: 1px solid #ccc;
 }
+
+
+.timeline {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.month-card {
+    border-left: 5px solid #1976d2;
+    background: #f9fafb;
+    padding: 18px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+.month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.month-title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.platform-badge {
+    background: #1976d2;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+}
+
+.movie-line {
+    padding: 6px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.movie-line:last-child {
+    border-bottom: none;
+}
+
+.month-cost {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #111827;
+}
+
+.total-cost {
+    margin-top: 25px;
+    padding: 15px;
+    background: #111827;
+    color: #f9fafb;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+}

@@ -49,7 +49,8 @@ function renderMovies() {
 }
 
 async function calculate() {
-    document.getElementById("plan").innerHTML = "";
+    const timelineDiv = document.getElementById("timeline");
+    if (timelineDiv) timelineDiv.innerHTML = "";
     const hoursPerWeek = parseFloat(
         document.getElementById("hoursPerWeek").value
     );
@@ -87,7 +88,7 @@ async function calculate() {
         });
 
         const data = await response.json();
-        renderPlan(data);
+        renderTimeline(data);
 
     } catch (err) {
         alert("Something went wrong. Please try again.");
@@ -98,7 +99,64 @@ async function calculate() {
     }
 }
 
-function renderPlan(data) {
+
+function renderTimeline(data) {
+    if (!data || !data.timeline) {
+        console.error("Invalid timeline data:", data);
+        alert("Timeline data missing from server response");
+        return;
+    }
+    const timelineDiv = document.getElementById("timeline");
+    timelineDiv.innerHTML = "";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "timeline";
+
+    data.timeline.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "month-card";
+
+        const header = document.createElement("div");
+        header.className = "month-header";
+
+        const title = document.createElement("div");
+        title.className = "month-title";
+        title.textContent = `Month ${item.month}`;
+
+        const badge = document.createElement("div");
+        badge.className = "platform-badge";
+        badge.textContent = item.platform;
+
+        header.appendChild(title);
+        header.appendChild(badge);
+        card.appendChild(header);
+
+        item.movies.forEach(movie => {
+            const line = document.createElement("div");
+            line.className = "movie-line";
+            line.textContent = `🎬 ${movie.title} (${movie.hours} hrs)`;
+            card.appendChild(line);
+        });
+
+        const cost = document.createElement("div");
+        cost.className = "month-cost";
+        cost.textContent = item.monthly_price
+            ? `Subscription cost: ₹${item.monthly_price}`
+            : "Subscription cost: Unknown";
+
+        card.appendChild(cost);
+        wrapper.appendChild(card);
+    });
+
+    const total = document.createElement("div");
+    total.className = "total-cost";
+    total.textContent = `Total rotation cost: ₹${data.total_cost}`;
+
+    timelineDiv.appendChild(wrapper);
+    timelineDiv.appendChild(total);
+}
+
+/*function renderPlan(data) {
     const planDiv = document.getElementById("plan");
     planDiv.innerHTML = "";
 
@@ -154,3 +212,6 @@ function renderPlan(data) {
 
     planDiv.appendChild(container);
 }
+*/
+
+

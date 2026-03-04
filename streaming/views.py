@@ -41,7 +41,7 @@ def calculate_rotation(request):
 
     data = json.loads(request.body)
     movie_titles = data.get("movies", [])
-    hours_per_week = data.get("hours_per_week", 10)
+    hours_per_week = float(data.get("hours_per_week", 10))
 
     platform_groups = {}
 
@@ -58,31 +58,47 @@ def calculate_rotation(request):
         runtime_hours = round(runtime_minutes / 60, 2)
 
         flatrate = providers.get("flatrate", [])
-        if not flatrate:
-            platform_info = {
-                "platform": "Unavailable",
-                "price": None,
-                "source": "none"
-            }
-        else:
-            platform_info = choose_platform_with_price(flatrate)
 
-        platform = platform_info["platform"]
+        # Choose cheapest available platform in DB
+        chosen_platform = None
+        chosen_price = None
 
-        platform_groups.setdefault(platform, {
+        for p in flatrate:
+            service = StreamingService.objects.filter(
+                name=p["provider_name"],
+                country="IN"
+            ).first()
+
+            if service:
+                if chosen_price is None or service.monthly_price < chosen_price:
+                    chosen_platform = service.name
+                    chosen_price = float(service.monthly_price)
+
+        # Fallback: first available platform
+        if not chosen_platform:
+            if flatrate:
+                chosen_platform = flatrate[0]["provider_name"]
+                chosen_price = None
+            else:
+                chosen_platform = "Unavailable"
+                chosen_price = None
+
+        platform_groups.setdefault(chosen_platform, {
+            "movies": [],
             "total_hours": 0,
-            "price": platform_info["price"],
-            "movies": []
+            "price": chosen_price
         })
 
-        platform_groups[platform]["movies"].append({
+        platform_groups[chosen_platform]["movies"].append({
             "title": movie["title"],
             "hours": runtime_hours
         })
+        platform_groups[chosen_platform]["total_hours"] += runtime_hours
 
-        platform_groups[platform]["total_hours"] += runtime_hours
+    # 🔥 BUILD TIMELINE HERE
+    result = build_timeline(platform_groups, hours_per_week)
 
-    return JsonResponse(platform_groups)
+    return JsonResponse(result, safe=False)
 
 
 
@@ -92,39 +108,31 @@ def weeks_needed(total_hours, hours_per_week):
     return math.ceil(total_hours / hours_per_week)
 
 def months_needed(weeks):
-    return math.ceil(weeks / 4)
+    return max(1, math.ceil(weeks / 4))
 
 
-def optimize_rotation(platform_groups):
+
+def optimize_platform_order(platform_groups):
     """
-    platform_groups: dict from calculate_rotation()
+    Sort by:
+    1. Fewest movies
+    2. Lowest price (None goes last)
+    3. Lowest total hours
     """
-
     def sort_key(item):
         platform, info = item
-
         movie_count = len(info["movies"])
         price = info["price"] if info["price"] is not None else float("inf")
         total_hours = info["total_hours"]
 
-        return (
-            movie_count,     # fewer movies first
-            price,           # cheaper first
-            total_hours      # less watch time first
-        )
+        return (movie_count, price, total_hours)
 
-    sorted_platforms = sorted(
-        platform_groups.items(),
-        key=sort_key
-    )
+    return sorted(platform_groups.items(), key=sort_key)
 
-    return sorted_platforms
+def build_timeline(platform_groups, hours_per_week):
+    ordered = optimize_platform_order(platform_groups)
 
-
-def build_rotation_plan(platform_groups, hours_per_week):
-    ordered = optimize_rotation(platform_groups)
-
-    plan = []
+    timeline = []
     current_month = 1
     total_cost = 0
 
@@ -132,21 +140,21 @@ def build_rotation_plan(platform_groups, hours_per_week):
         weeks = weeks_needed(info["total_hours"], hours_per_week)
         months = months_needed(weeks)
 
-        cost = (info["price"] or 0) * months
-
-        plan.append({
-            "platform": platform,
-            "start_month": current_month,
-            "months": months,
-            "movies": info["movies"],
-            "monthly_price": info["price"],
-            "cost": cost
-        })
-
-        current_month += months
+        monthly_price = info["price"]
+        cost = (monthly_price or 0) * months
         total_cost += cost
 
+        for m in range(months):
+            timeline.append({
+                "month": current_month,
+                "platform": platform,
+                "monthly_price": monthly_price,
+                "movies": info["movies"]
+            })
+            current_month += 1
+
     return {
-        "timeline": plan,
+        "timeline": timeline,
         "total_cost": total_cost
     }
+
